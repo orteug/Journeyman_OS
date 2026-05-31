@@ -14,26 +14,8 @@ source/.env
 # macOS
 .DS_Store
 
-# Internal / operational — not public deliverables
-CLAUDE.md
-SERVICES_AND_KEYS.md
+# Internal session notes (not a deliverable)
 SESSION_LOG.md
-PROCESS_LOG.md
-STACK_CONTEXT.md
-
-# Internal system folders
-backend/
-chatgpt-projects/
-claude-code/
-claude-projects/
-codex/
-memory/
-source/
-workflows/
-knowledge/
-execute/
-praeceptor/
-mockups/
 
 # Design scratch files
 landing/design-canvas.jsx

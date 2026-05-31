@@ -1,0 +1,43 @@
+[
+  {
+    "id": "c01",
+    "label": "Primary regional competitor — commercial HVAC, Front Range CO",
+    "url": "https://sunbeltair-example.com",
+    "signal_type": "T2",
+    "watch": [
+      "job postings — Indeed, ZipRecruiter",
+      "pricing page — commercial maintenance contract minimums",
+      "service area map — expansion signals",
+      "Google Reviews — complaint pattern tracking"
+    ],
+    "cadence": "job postings: weekly · pricing page: monthly · reviews: monthly",
+    "calibration_notes": "2025-12-01 — raised commercial contract minimums (detected via Angi listing change). 2 client inquiries followed; 1 converted. Watch: if technician wages in job postings rise above $34/hr, expect second pricing move within 90 days.",
+    "priority_signal": "Job postings. Competitor compensation offers are the most reliable leading indicator of pricing moves. They can afford to raise prices when they can afford to raise wages. Check compensation before checking pricing pages."
+  },
+  {
+    "id": "c02",
+    "label": "Secondary regional competitor — commercial HVAC, Denver metro",
+    "url": "https://frontrangehvac-example.com",
+    "signal_type": "T2",
+    "watch": [
+      "job postings — Indeed only",
+      "Google Reviews — response time and service failure patterns"
+    ],
+    "cadence": "job postings: monthly · reviews: quarterly",
+    "calibration_notes": "No pricing moves detected as of 2025-12-03. Lower activity company — useful as baseline for what competitors are NOT doing.",
+    "priority_signal": "Google Reviews. Best signal for service gap complaints that repeat across competitors — reveals industry-wide pain points that our client can differentiate on."
+  },
+  {
+    "id": "c03",
+    "label": "Angi / HomeAdvisor — platform-level market signal",
+    "url": "https://www.angi.com",
+    "signal_type": "T2",
+    "watch": [
+      "competitor listing changes — pricing minimums, service tier language",
+      "review volume trends — demand signal"
+    ],
+    "cadence": "monthly",
+    "calibration_notes": "2025-12-01 — correctly detected SunbeltAir pricing move. Platform is more relevant for residential than commercial; commercial pricing signals sometimes lag 30–60 days behind actual implementation. Confirmed accurate once but magnitude of downstream client behavior overstated.",
+    "priority_signal": "Listing changes. More relevant for detecting that a competitor moved than for quantifying how clients will respond. Pair with T1 sources (client-reported inquiry) before acting on behavioral predictions."
+  }
+]

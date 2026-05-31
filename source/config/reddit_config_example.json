@@ -1,0 +1,93 @@
+{
+  "_note": "Calibrated after 2 HVAC engagements. r/HVAC elevated to primary — T1 signal quality confirmed. r/hvacadvice downgraded — homeowner/residential focus, low commercial operator signal. Keywords updated to track labor market and contract pricing specifically.",
+
+  "subreddits": [
+    {
+      "name": "HVAC",
+      "tier": "T1",
+      "domain_quality": "★★★★★ — Mid-market HVAC",
+      "why": "Technician-level ground truth. Wage discussions, turnover drivers, shop culture, equipment preferences — unfiltered. Primary source for labor constraint intelligence.",
+      "cadence": "weekly digest"
+    },
+    {
+      "name": "smallbusiness",
+      "tier": "T1",
+      "domain_quality": "★★★☆☆ — Mid-market HVAC",
+      "why": "Owner-operator level. Useful for pricing psychology and client relationship dynamics. Less HVAC-specific but captures patterns that transfer.",
+      "cadence": "weekly digest"
+    },
+    {
+      "name": "hvacadvice",
+      "tier": "T1",
+      "domain_quality": "★★★☆☆ — Mid-market HVAC",
+      "why": "Homeowner and light commercial focus. Useful for consumer-side perception of contractors — what clients complain about before and after service. Skip for operator intelligence; use for client-side framing.",
+      "cadence": "monthly digest"
+    }
+  ],
+
+  "keywords": {
+    "labor_market": [
+      "technician pay",
+      "HVAC wages",
+      "tech pay",
+      "NATE certification",
+      "turnover",
+      "retention bonus",
+      "leaving the trade",
+      "callback rate",
+      "dispatch pay",
+      "flat rate vs hourly"
+    ],
+    "contract_pricing": [
+      "maintenance contract",
+      "service agreement",
+      "price increase",
+      "raise prices",
+      "pricing model",
+      "contract renewal",
+      "multi-year contract",
+      "preventive maintenance",
+      "commercial HVAC pricing"
+    ],
+    "seasonal_cash": [
+      "slow season",
+      "shoulder season",
+      "spring slowdown",
+      "fall drop",
+      "cash flow",
+      "line of credit",
+      "financing equipment"
+    ],
+    "competitor_signals": [
+      "company culture",
+      "shop management",
+      "owner fired",
+      "left the company",
+      "dispatch software",
+      "ServiceTitan",
+      "Jobber",
+      "FieldEdge"
+    ]
+  },
+
+  "filters": {
+    "min_score": 8,
+    "max_age_days": 30,
+    "flag_unanswered_threshold": 3,
+    "exclude_flairs": ["meme", "humor", "off-topic"],
+    "prioritize_flairs": ["advice", "question", "discussion", "rant"]
+  },
+
+  "calibration_history": [
+    {
+      "date": "2025-10-08",
+      "adjustment": "Added labor_market keyword cluster after T1 signal confirmed: technician wage inflation is the leading indicator for client gross margin compression. Previously only tracking generic 'software' and 'scheduling' keywords — these produced low-signal output for commercial operator engagements.",
+      "outcome": "Gross margin compression on 3-year contracts confirmed at 4.3 points. T1 source led correctly."
+    },
+    {
+      "date": "2025-11-20",
+      "adjustment": "Elevated r/HVAC to weekly cadence (was monthly). Added 'leaving the trade' and 'flat rate vs hourly' keywords after forum posts on these topics correlated with technician retention patterns relevant to active engagement.",
+      "outcome": "Pending — signals collected for calibration at engagement close."
+    }
+  ]
+}

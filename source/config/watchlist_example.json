@@ -1,0 +1,53 @@
+[
+  {
+    "id": "hvac-01",
+    "label": "Mid-market HVAC service operators — Colorado / Rocky Mountain",
+    "shape": "Owner-operated, $3M–$15M revenue, 15–60 technicians, commercial maintenance contracts as primary recurring revenue",
+    "engagement_status": "active",
+    "last_updated": "2025-12-03",
+    "signal_cadence": "weekly",
+    "queries": {
+      "gap": "What are mid-market commercial HVAC operators in Colorado struggling with that their current pricing or staffing model doesn't solve?",
+      "competition": "What are the dominant regional HVAC service companies in the Denver/Front Range market doing on pricing, hiring, and contract structure?",
+      "demand": "What are commercial HVAC operators asking about in trade communities around technician retention, maintenance contract pricing, and cash flow?"
+    },
+    "competitors": ["sunbeltair-example.com", "frontrangehvac-example.com"],
+    "watch_condition": "Technician wage offers in job postings — leading indicator for competitor pricing moves. Watch compensation before watching pricing pages.",
+    "calibration_notes": "2025-12-01 — competitor pricing page change detected via Angi. Behavioral prediction overstated (predicted 3–5 client switches; 1 converted, 1 stayed). T2 source accurate on market move; inaccurate on client behavior magnitude. Apply 20% price differential threshold as default switching trigger in maintenance contract domains.",
+    "source_priority": ["reddit_config_example.json#r/HVAC", "competitors_example.json#job-postings", "google-trends#HVAC-contractors-colorado"]
+  },
+  {
+    "id": "hvac-02",
+    "label": "HVAC technician labor market — Colorado / national trend",
+    "shape": "Labor intelligence — tracks technician wage inflation, certification requirements, shop culture signals",
+    "engagement_status": "active",
+    "last_updated": "2025-11-20",
+    "signal_cadence": "weekly",
+    "queries": {
+      "gap": "What are HVAC technicians saying they want from employers that they are not getting?",
+      "competition": "What are regional HVAC companies offering technicians in job postings this month — wages, benefits, sign-on bonuses?",
+      "demand": "What NATE certifications are in highest demand? What career ceiling complaints are technicians voicing?"
+    },
+    "competitors": [],
+    "watch_condition": "Wage offers above $32/hr in job postings signal that competitors can afford to raise prices — watch pricing pages 60–90 days after wage compression.",
+    "calibration_notes": "2025-10-08 — T1 signal from r/HVAC confirmed: technician wage inflation outpacing maintenance contract price inflation. Gross margin on 3-year contracts averaged 4.3 points lower than 1-year contracts. T1 source led correctly against operator's prior conviction.",
+    "source_priority": ["reddit_config_example.json#r/HVAC", "competitors_example.json#job-postings"]
+  },
+  {
+    "id": "cre-01",
+    "label": "Commercial real estate facilities management — Denver metro",
+    "shape": "Facilities managers at mid-market commercial properties — decision authority over HVAC maintenance contract renewals",
+    "engagement_status": "watch",
+    "last_updated": "2025-11-03",
+    "signal_cadence": "monthly",
+    "queries": {
+      "gap": "What are facilities managers at Denver commercial properties saying about HVAC contractor performance and renewal criteria?",
+      "competition": "Which HVAC contractors are facilities managers recommending in Denver CRE circles?",
+      "demand": "What does BOMA's annual survey reveal about FM priorities and vendor selection criteria for the coming year?"
+    },
+    "competitors": [],
+    "watch_condition": "BOMA facilities manager survey — promoted from WATCH to ACT NOW 2025-12-03. Renewal decision at Anchor Client B expected Q1 2026. FM authority signal unresolved — monitor until confirmed.",
+    "calibration_notes": "Signal from operator tacit knowledge (T1): pitching ownership without FM relationship produces passive non-recommendation. Structural pattern confirmed by BOMA publications. Specific prediction unresolved until Q1 2026 renewal.",
+    "source_priority": ["boma.org/research", "linkedin#facilities-management-denver"]
+  }
+]
