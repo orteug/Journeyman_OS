@@ -17,5 +17,7 @@ source/.env
 # Internal session notes (not a deliverable)
 SESSION_LOG.md
 
-# Design scratch files
-landing/design-canvas.jsx
+# Design briefs and landing page (separate repo / Vercel)
+DESKTOP_APP_DESIGN_BRIEF.md
+WEB_APP_DESIGN_BRIEF.md
+landing/
