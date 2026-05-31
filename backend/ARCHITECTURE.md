@@ -1,248 +1,281 @@
-# Backend Architecture
-## Technical Reference — Memory Backbone
-*Architecture designed in Codex on 2026-05-30. This document is the human-readable distillation.*
+# Architecture
 
----
+## Purpose and Scope
 
-## Deployment Model
+This system provides reliable, auditable multi-agent operations across multiple clients using a shared backend, Supabase for shared storage and retrieval, and an optional local-first memory runtime for high-recall private memory. The orchestration layer is AI-provider agnostic: clients and agent workflows depend on backend contracts, not on a specific model vendor or model API shape.
 
-The target architecture is **hybrid**: Supabase provides shared state and promoted memory accessible from every client; local-first memory provides high-recall private memory for desktop environments that can reach the operator's own hardware.
+For implementation handoff, start with [BUILD_HANDOFF.md](BUILD_HANDOFF.md).
 
-All clients call the backend API. No client calls a model provider directly. The backend is the trust boundary — it authenticates requests, loads memory, assembles context, calls providers through provider adapters, and persists results. The model provider is interchangeable from the client's perspective.
+Accepted, open, deferred, and rejected architecture decisions are tracked in [DECISION_REGISTER.md](DECISION_REGISTER.md).
 
-Three deployment modes exist:
-- `cloud-primary`: Supabase and hosted providers only. Local memory unavailable. This is the iOS default.
-- `local-primary`: local memory preferred. Supabase used for sync, shared state, and audit.
-- `hybrid`: Supabase for shared state; local memory for desktop and agent environments. **Target production mode.**
+The initial supported clients are:
 
----
+- iOS coach client
+- Desktop client
+- Claude Code client
 
-## The Four Clients
+All clients call the backend API. Clients do not call model providers directly. Clients may have different memory scopes depending on platform capabilities and local runtime availability.
 
-| Client | Memory Scopes | Local Runtime | Notes |
-|--------|--------------|---------------|-------|
-| **Claude Code** | Supabase + all local backends | Full local stack when running in operator's environment | Primary engagement execution environment. Can promote to Supabase. |
-| **Codex** | Supabase + all local backends | Full local stack + Graphify code graphs | Agent execution environment. GRAPH is primary local asset. |
-| **iOS PRAECEPTOR** | Supabase + promoted memory | None by default | Voice-first coach. KNOWING layer feeds promoted memory candidates. Can request handoffs. |
-| **CF_OS (desktop)** | Supabase + all local backends | Full local stack | Permanent desktop home. Equivalent to Claude Code in memory scope. |
+## System Overview
 
-Memory scope is declared per agent run. An agent cannot imply it has memory it wasn't given.
+The backend is the trust boundary and orchestration layer. It is responsible for:
 
----
+- Authenticating client requests.
+- Authorizing access to user, conversation, and agent data.
+- Loading and writing Supabase data.
+- Performing retrieval and context assembly.
+- Routing memory queries across shared, promoted, and local-first memory backends.
+- Calling AI providers through provider adapters.
+- Persisting model outputs, agent results, summaries, facts, and embeddings.
+- Recording audit trails for maintenance and administrative actions.
 
-## The Memory Model
+Supabase provides the shared canonical persistence layer. It uses Postgres for relational data and `pgvector` for semantic retrieval. Core stored entities include:
 
-### Three Memory Classes
+- Users
+- Conversations
+- Messages
+- Summaries
+- Facts
+- Embeddings
+- Agent jobs and handoff records
+- Memory lifecycle events
+- Memory control actions
+- Audit events
 
-**Shared memory** lives in Supabase. Available to all authorized clients. Cross-platform canonical state.
-- Conversations · Messages · Summaries · Facts · Embeddings · Agent jobs · Handoff records · Audit events
+The local-first runtime provides private, user-controlled memory and retrieval where available. It is not required for every client, but desktop and local agent environments can use it directly.
 
-**Private local memory** lives in the local-first runtime. Available only to desktop, Claude Code, Codex, and local workers.
-- **CORTEX** — structured state in local Postgres + pgvector
-- **PALACE** — long-term episodic memory (MemPalace: ChromaDB + SQLite knowledge graph)
-- **CORPUS** — document retrieval (LightRAG + RAG-Anything)
-- **GRAPH** — codebase navigation (Graphify AST + subagent-generated graphs)
-- **INGEST** — continuous ingestion pipelines (n8n: email, calendar, notes, SEO data)
+Local-first layers:
 
-**Promoted memory** bridges local-first and cross-platform. Compact, source-linked distillations of local memory that are safe to share across clients. This is what iOS can access from the desktop's memory.
+- CORTEX: local Postgres plus `pgvector` for structured state.
+- PALACE: MemPalace using ChromaDB plus SQLite knowledge graph for long-term episodic memory.
+- CORPUS: LightRAG plus RAG-Anything for document graph and vector retrieval.
+- GRAPH: Graphify codebase graphs for token-efficient code navigation.
+- INGEST: n8n pipelines for continuous ingestion from email, calendar, notes, SEO data, and other sources.
 
-### Three Memory Tiers
+The backend should treat Supabase and local memory systems as retrieval backends behind a common context assembly interface. Supabase remains the shared truth for cross-platform state, permissions, sync, promoted memory, and auditability. The local stack remains the high-recall, low-cost, provider-neutral memory substrate for environments that can reach it.
 
-**Short-term** — recent message window. Highest fidelity. Preferred whenever token budget allows.
+## Deployment Modes
 
-**Mid-term** — rolling summaries, agent handoff briefs, decision summaries, open questions. Used when conversation exceeds the context window but recent continuity still matters.
+The architecture supports three deployment modes:
 
-**Long-term** — distilled facts, stable preferences, decisions, entity records, embeddings. Retrieved across long conversations, across clients, and across agent runs.
+- `cloud-primary`: Supabase and hosted providers are the main runtime. Local memory is unavailable.
+- `local-primary`: local memory and local models are preferred. Supabase is used for sync, shared state, and audit where needed.
+- `hybrid`: Supabase provides shared state and promoted memory everywhere; local memory is used by desktop, Claude Code, Codex, and local workers when available.
 
-### Memory Lifecycle
+The target production architecture is `hybrid`. The implementation path should start with the smaller releases defined in [IMPLEMENTATION_SEQUENCE.md](IMPLEMENTATION_SEQUENCE.md), then grow toward hybrid operation through explicit gates.
 
-Every memory moves through explicit states. Nothing changes silently.
+Recommended sequence:
 
-```
-captured → extracted → validated → promoted → retrieved → superseded → invalidated → deleted
-```
+- v0: shared Supabase memory spine.
+- v1: auditable memory product.
+- v2: local handoffs and promotion.
+- v3+: full hybrid local-first platform.
 
-- **captured**: raw source material (a message, a document, a voice session transcript)
-- **extracted**: a candidate memory derived by model or rule — not trusted until validated
-- **validated**: trusted for retrieval
-- **promoted**: available across clients (in Supabase)
-- **retrieved**: used in a context assembly
-- **superseded**: replaced by a newer memory — preserved for audit, deprioritized in retrieval
-- **invalidated**: should not be used for normal retrieval
-- **forgotten**: user-requested — excluded from retrieval but not yet deleted
-- **deleted**: removed, derived artifacts purged per retention policy
+The full V3 platform contract is defined in [V3_HYBRID_PLATFORM.md](V3_HYBRID_PLATFORM.md).
 
-Every lifecycle transition writes a `memory_lifecycle_event` record. Every retrieval is traceable back to the source that produced it.
+## High-Level Flow
 
----
+1. A client sends an authenticated request to the backend.
+2. The backend validates authorization and creates or loads the relevant conversation/job.
+3. The memory router classifies the request and determines which memory scopes are relevant and available.
+4. The backend retrieves the recent message window, summaries, facts, and embeddings needed for context.
+5. The backend retrieves from Supabase, promoted memory, and any available local memory backends.
+6. The backend assembles a bounded context bundle with source references, validity metadata, and retrieval reasons.
+7. The backend invokes one or more agent runs through model-provider adapters.
+8. Agent outputs are validated against structured response contracts.
+9. The backend persists messages, job results, facts, summaries, embeddings, promoted memories, lifecycle events, and audit records.
+10. The backend streams progress or returns the completed result to the client.
 
-## The Memory Router
+## Backend Responsibilities
 
-The router decides which memory backends to query for a given request. It runs on the backend — not in any client.
+The backend owns all privileged operations:
 
-**Inputs:** user request · conversation ID · agent ID · client platform · available memory scopes · token budget
+- Service role Supabase access.
+- Maintenance jobs.
+- Summary compaction.
+- Embedding refreshes.
+- PII scrubbing.
+- Provider API keys.
+- Cross-agent handoffs.
+- Memory promotion from local-only systems into Supabase.
+- Local-memory handoff jobs when a client cannot directly access local memory.
+- Memory lifecycle transitions such as validation, promotion, invalidation, forgetting, and deletion.
+- User-facing memory controls.
 
-**Outputs:** ranked context items with source references and retrieval reasons · missing memory scope signals · handoff recommendations · stale or conflicting memory warnings
+Clients should only receive data they are authorized to view. Client-visible APIs should be stable even if model providers, prompts, retrieval logic, or worker implementations change.
 
-### Query Classification
+Credential placement, local worker authority, and retrieval paths are defined in [TRUST_BOUNDARIES.md](TRUST_BOUNDARIES.md).
 
-The router classifies every request by retrieval intent before deciding where to look:
+## AI Provider Abstraction
 
-| Intent | Primary backends |
-|--------|-----------------|
-| `conversation_continuity` | Recent messages → summaries → promoted memory |
-| `profile_or_preference` | Promoted memory → facts → PALACE |
-| `current_project` | Promoted memory → CORTEX → PALACE → CORPUS |
-| `decision_lookup` | Facts → promoted memory → PALACE |
-| `document_lookup` | CORPUS → promoted memory → embeddings |
-| `codebase_lookup` | GRAPH → then raw files only if GRAPH insufficient |
-| `structured_state_lookup` | CORTEX |
-| `temporal_lookup` | Facts and promoted memory with validity windows → PALACE |
+Provider integrations should be wrapped behind a narrow adapter interface. The orchestration layer should pass normalized request objects and receive normalized response objects.
 
-For codebase queries: GRAPH summaries and symbols are queried before raw files. This is the primary token efficiency mechanism for Claude Code and Codex sessions.
+Provider adapters should handle:
 
-### Hybrid Ranking Score
+- Model selection.
+- Request formatting.
+- Streaming protocol differences.
+- Timeout behavior.
+- Retryable provider errors.
+- Provider-specific metadata capture.
 
-When combining results from multiple backends:
+The rest of the system should treat providers as interchangeable execution backends, subject to capability differences.
 
-```
-score =
-  base_relevance × 0.35
-  + intent_match × 0.20
-  + confidence × 0.15
-  + temporal_score × 0.10
-  + scope_match × 0.10
-  + backend_priority × 0.10
-```
+## Supabase Storage and Retrieval
 
-Backend priority is intent-dependent: for codebase queries, GRAPH ranks highest; for episodic queries, PALACE ranks highest; for preference queries, promoted memory ranks highest.
+Supabase stores shared source-of-truth records and cross-platform retrieval artifacts.
 
-### Context Budget
+Relational tables hold users, conversations, messages, summaries, facts, jobs, and audits. Vector tables hold embeddings linked to source records. Retrieval should preserve source lineage so that generated outputs can be audited back to the messages, facts, summaries, and documents used to produce them.
 
-Default token allocation per request:
-- Current request + recent messages: 30%
-- Promoted memory + facts: 20%
-- Local backend results: 30%
-- Summary fallback: 10%
-- Tool and handoff metadata: 10%
+Row level security should protect user-owned data. Service role operations must remain server-side only.
 
-For iOS (cloud-primary): local backend allocation is zero unless a handoff result has been promoted.
+The concrete schema, indexes, enums, RLS baseline, and RPC allowlist are defined in [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md).
 
----
+## Memory Router
 
-## iOS PRAECEPTOR — The Migration Path
+The memory router decides which memory systems to query for a given request. It should be a backend service, not client logic.
 
-The iOS app currently runs in **local sovereign mode**: direct provider calls from the device, API keys in Keychain, KNOWING layer stored locally, no backend mediation.
+Router responsibilities:
 
-This is preserved, not removed. The migration is additive.
+- Classify the request type and likely memory needs.
+- Determine available memory scopes for the client and agent.
+- Query shared memory, promoted memory, local-first memory, or code graphs as appropriate.
+- Detect missing memory scopes and create handoff jobs when needed.
+- Rank results across vector, keyword, graph, temporal, and recency signals.
+- Filter stale, invalidated, low-confidence, or unauthorized memories.
+- Return context items with source references and retrieval reasons.
 
-### Phase 0 — Preserve local sovereign behavior
-No changes to the direct Claude streaming path, local KNOWING layer, or data deletion controls. The existing behavior remains the default.
+The router should support hybrid retrieval: recent messages, structured facts, semantic search, graph traversal, full-text search, and code graph navigation. It should prefer Graphify summaries and symbols before raw code reads.
 
-### Phase 1 — Add backend client abstraction
-Introduce a protocol abstraction in the app:
-```
-SessionViewModel → MentorResponseClient
-  .direct  → ClaudeService (current path)
-  .backend → backend API (new path)
-```
-The UI doesn't know which path is active. The user toggles in settings.
+The deterministic first implementation is defined in [V1_RETRIEVAL_ROUTER.md](V1_RETRIEVAL_ROUTER.md).
 
-### Phase 2 — Shared memory sync controls
-Expose controls in the existing Data & Privacy screen:
-- Local session history (current)
-- Local KNOWING layer (current)
-- Promoted shared memories (new)
-- Synced conversation records (new)
-- Local-only memory (new)
+The V3 multi-backend router is defined in [V3_MEMORY_ROUTER.md](V3_MEMORY_ROUTER.md).
 
-### Phase 3 — Missing-scope handoffs
-When iOS asks something that requires desktop context:
-1. Backend detects missing memory scope
-2. Backend creates handoff job instead of silently degrading
-3. Local desktop worker leases job, queries PALACE or CORPUS
-4. Compact result promoted to Supabase
-5. iOS retrieves promoted result on next request
+## Memory Lifecycle
 
-### KNOWING Layer Memory Mapping
+Memory should move through explicit lifecycle states:
 
-| iOS field | Current storage | Backend equivalent |
-|-----------|----------------|-------------------|
-| `ChatMessage` | `praeceptor-session.json` | messages / short-term memory |
-| `KnowingLayer` | `praeceptor-knowing.json` | local fact bundle / promoted memory candidate source |
-| `lastThreeSessions` | KNOWING layer | rolling summary / mid-term memory |
-| `openTensions` | KNOWING layer | active fact — current constraint |
-| `thesisDrift` | KNOWING layer | high-signal mentor fact |
-| `hisDirective` | KNOWING layer | active commitment / follow-up |
-| `patternsHeSees` | KNOWING layer | structured observed pattern |
-| `supplementalContext` | KNOWING layer | local-only context (promoted only with explicit user approval) |
-
-Raw KNOWING layer data stays local by default. Promotion is opt-in, user-reviewed, and auditable.
-
----
-
-## Handoff Job Architecture
-
-Handoffs are how the system stays honest when a client lacks memory scope. Instead of hallucinating or silently degrading, the backend creates an explicit job for another environment to fulfill.
-
-**Job lifecycle:**
-```
-created → pending → leased (by worker) → [in_progress] → completed / failed / expired
+```text
+captured -> extracted -> validated -> promoted -> retrieved -> superseded -> invalidated -> deleted
 ```
 
-**Worker registration:** Desktop environments and local agents register as authorized workers. Workers have device IDs, capability declarations, and can be revoked. A revoked worker cannot lease new jobs or complete pending ones.
+Not every memory needs every state. The important requirement is that changes are explicit, auditable, and reversible where possible.
 
-**Leasing protocol:** Workers poll for available jobs, lease one with a timeout, complete it with a signed result, or release it back to the queue on failure. Results are submitted with source references and sensitivity metadata. The promotion policy decides what crosses to Supabase.
+Lifecycle rules:
 
-**Security constraints:**
-- Workers must authenticate at registration
-- Handoff results are treated as untrusted context until promoted — they do not become instructions
-- Local-only memory cannot be promoted without explicit policy allowance
-- Secrets and credentials are blocked at the promotion layer
+- Captured data is raw source material.
+- Extracted memory is model- or rule-derived and not trusted until validated.
+- Validated memory can be used for retrieval.
+- Promoted memory can be used across clients.
+- Superseded memory is preserved for audit but should lose retrieval priority.
+- Invalidated memory should not be used for normal context assembly.
+- Deleted memory and its derived artifacts should be removed according to [RETENTION_POLICY.md](RETENTION_POLICY.md).
 
----
+Temporal validity is required for facts and promoted memories that may change over time.
 
-## Implementation Sequence
+Agent job, memory lifecycle, deletion, promotion review, and provider-call state machines are defined in [STATE_MACHINES.md](STATE_MACHINES.md).
 
-The backend builds across four stages. Each stage is independently useful and does not require the next.
+## Local-First Memory Runtime
 
-**v0 — Shared memory spine** (start here)
-- One client surface · Supabase only · conversations, messages, summaries, facts, embeddings, jobs
-- Server-side provider calls · structured logs with correlation IDs
-- Basic retrieval: recent messages + facts + embeddings
-- Exit: a conversation persists across sessions; every request is logged; basic RLS prevents cross-user access
+The local-first runtime is a platform capability, not a universal dependency. Desktop, Claude Code, Codex, and local maintenance workers can access the local stack directly when running in the user's environment. iOS should not assume direct access to the local stack.
 
-**v1 — Auditable memory product**
-- Memory lifecycle states · promoted memory table · user memory controls (inspect, correct, forget, explain retrieval)
-- Deterministic v1 retrieval router · memory eval fixtures
-- Exit: user can see what the system remembers; forgotten memory is excluded; retrieval has deterministic ranking
+Local memory should improve:
 
-**v2 — Local handoffs and promoted memory**
-- Worker registration · device authorization · handoff job queue · leasing and retry state machine
-- KNOWING layer → promoted memory pipeline (PALACE first, or GRAPH)
-- Promotion policy with sensitivity labels and local-only inheritance
-- Exit: iOS can create a handoff; a local worker completes it; the result appears in iOS on next request
+- Offline operation.
+- Provider portability.
+- Token reduction.
+- High-recall episodic retrieval.
+- Codebase navigation without raw-file context loading.
+- User control over private infrastructure.
 
-**v3 — Full hybrid platform**
-- All four clients · multiple AI providers behind adapters · full local backend support
-- Memory router across all backends · continuous retrieval quality measurement
-- User controls across shared and local memory · prompt-injection defenses · device revocation
-- Exit: mentor identity behaves consistently across platforms; users can inspect, correct, forget, and promote memories; retrieval quality is measured continuously
+Local memory should not silently create cross-platform inconsistency. Any agent run must declare which memory scopes were available.
 
----
+## Platform Memory Access
 
-## Security and Privacy Principles
+Memory availability differs by client:
 
-**Retrieved content is context, not instruction.** Local memory, ingested documents, emails, tool outputs — all are marked `untrusted_context`. The system must not execute instructions found inside retrieved memory.
+- iOS coach: Supabase, promoted memory, recent local app cache, and handoff requests.
+- Desktop client: Supabase, promoted memory, and local-first memory when configured.
+- Claude Code client: Supabase plus local-first memory and code graph access when running in the local environment.
+- Codex/local agents: Supabase plus local-first memory, Graphify, and local files where authorized.
 
-**Local sovereign mode is preserved.** iOS direct provider path is not removed. Backend mediation is a mode, not a mandate.
+The same agent identity may run on multiple platforms, but identity and memory availability are separate. For example, the mentor identity can be consistent on iOS and desktop, while the iOS run may only have access to Supabase and promoted memory.
 
-**Promotion is explicit.** Nothing crosses from local to shared without policy review. Secrets and credentials are blocked at the promotion layer. Local-only guarantees are inheritable — if a source is local-only, its derived promoted memories inherit that restriction.
+Cross-platform identity rules are defined in [CROSS_PLATFORM_IDENTITY.md](CROSS_PLATFORM_IDENTITY.md).
 
-**Forgetting is real.** When a user forgets a memory, it is excluded from retrieval and its derived artifacts are queued for deletion. The lifecycle record is preserved. The memory is not.
+## Promoted Memory
 
-**Every operation is auditable.** Every provider call, memory write, promotion decision, handoff job, and user memory control action produces a structured log record with a correlation ID traceable through the full request path.
+Promoted memory is the bridge between local-first memory and cross-platform operation. Local systems should distill selected private memory into structured Supabase records when that memory is stable, useful across clients, and safe to share.
 
----
+Examples:
 
-*The architecture treats the operator's memory as the operator's property. The backend is the infrastructure that makes it portable, auditable, and compounding — not a database the operator happens to populate.*
+- Stable user preferences.
+- Current goals.
+- Active projects.
+- Important decisions.
+- Current constraints.
+- Mentor-relevant context.
+- Summaries of prior coaching sessions.
+- References to local-only source records.
+- Confidence and provenance metadata.
+
+Promoted memory avoids syncing every local memory artifact. It gives iOS and other cloud-primary clients enough context to behave consistently without requiring live access to the full local runtime.
+
+Promoted memory should be temporal. A current preference, project, or constraint should include when it was observed and whether it supersedes an older memory. This prevents old context from quietly becoming false.
+
+## Local-Memory Handoffs
+
+When a client needs local-only context that is not available in Supabase, the backend should create a handoff job instead of pretending the context exists.
+
+Recommended behavior:
+
+1. The client request is evaluated against available memory scopes.
+2. If local-only context is likely required, the backend creates a retrieval or analysis handoff job.
+3. An authorized desktop/local worker leases the job, queries PALACE, CORPUS, GRAPH, or CORTEX, and submits a signed result to the backend.
+4. The original client can continue with a provisional answer, wait for the handoff, or receive a follow-up when the promoted result is ready.
+
+A live local memory gateway may be added later, but it should not be a first requirement for iOS.
+
+The implementable handoff queue, leasing, retry, cancellation, and worker registration contract is defined in [HANDOFF_STATE_MACHINE.md](HANDOFF_STATE_MACHINE.md).
+
+## User Memory Controls
+
+Users need direct control over memory. The product should expose enough controls to inspect, correct, promote, localize, and delete memory.
+
+Core controls:
+
+- Show what the system remembers.
+- Explain why a memory was retrieved.
+- Forget this memory.
+- Correct this memory.
+- Keep this memory local only.
+- Promote this memory to shared/Supabase memory.
+- Sync this memory to iOS.
+- Show source references.
+
+Memory controls should write audit records and lifecycle events.
+
+Forgetting, deletion, supersession, backups, local deletion, and eval fixture retention are defined in [RETENTION_POLICY.md](RETENTION_POLICY.md).
+
+## Operational Concerns
+
+All request and worker flows should use structured logs. Every externally visible operation should carry a `correlation_id` from ingress through retrieval, provider calls, agent handoffs, persistence, and streaming responses.
+
+Operational requirements:
+
+- Use structured logs with fields for `correlation_id`, `user_id`, `conversation_id`, `job_id`, `agent_id`, action, status, latency, and error class.
+- Use retries with exponential backoff and jitter for transient provider, database, and network failures.
+- Use idempotency keys for mutation jobs such as message creation, summarization, embedding refreshes, compaction, and PII scrubbing.
+- Use trace spans for retrieval, context assembly, model calls, tool calls, persistence, and agent handoffs.
+- Persist enough metadata to reconstruct what happened during an agent run without storing private chain-of-thought.
+- Track retrieval quality, stale memory usage, false recall, and missing-memory handoff rates.
+
+V3 operational requirements are defined in [OPERATIONS.md](OPERATIONS.md).
+
+## Reliability Principles
+
+The system should prefer explicit state transitions over implicit side effects. Agent jobs should be durable enough to resume or safely retry after process failure. Mutation jobs should be idempotent. Maintenance workers should be able to process the same request more than once without corrupting user data.
+
+## Initial Non-Goals
+
+The first version does not need to support direct client-to-provider calls, provider-specific client behavior, unmanaged background mutations, unbounded conversation context, local-first memory runtime integration, handoff workers, or mandatory live access from iOS to the local memory stack. It should optimize for a clear backend contract, durable shared state, explicit memory scopes, and auditable operations while preserving the v3+ path.
