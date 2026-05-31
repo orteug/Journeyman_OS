@@ -1,6 +1,8 @@
 # JUDGE GUIDE
 ## The Researcher — 5-Minute Evaluation Path
 
+**GitHub:** https://github.com/orteug/Journeyman_OS · **Live demo:** https://journeyman-os.vercel.app
+
 This guide is for the competition judge. The path below is designed for 5 minutes. Each step is testable.
 
 ---
@@ -159,8 +161,6 @@ It is methodology, productized into four platform folders (two providers × two 
 | [`QUICK-START.md`](./QUICK-START.md) | Which platform folder for which user |
 | [`SERVICES_AND_KEYS.md`](./SERVICES_AND_KEYS.md) | Setup checklist for upstream pipeline |
 | [`PROCESS_LOG.md`](./PROCESS_LOG.md) | This build, timestamped |
-| [`DESKTOP_APP_DESIGN_BRIEF.md`](./DESKTOP_APP_DESIGN_BRIEF.md) | Desktop app design specification |
-| [`WEB_APP_DESIGN_BRIEF.md`](./WEB_APP_DESIGN_BRIEF.md) | Web app design specification |
 | [`workflows/`](./workflows/) | Canonical operator protocols the flywheel runs against |
 | [`backend/`](./backend/) | Memory backbone architecture — cross-platform persistence layer |
 | [`claude-code/`](./claude-code/) | Full-tier deployment for Claude Code |
@@ -170,4 +170,4 @@ It is methodology, productized into four platform folders (two providers × two 
 
 ---
 
-*Pick a platform. Open the URL. Read the WRITEUP. Five minutes.*
+*Pick a platform. Open https://journeyman-os.vercel.app. Read the WRITEUP. Five minutes.*

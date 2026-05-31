@@ -1,6 +1,8 @@
 # The Researcher
 ## Operator Engagement Intelligence Layer
 
+**GitHub:** https://github.com/orteug/Journeyman_OS · **Live demo:** https://journeyman-os.vercel.app
+
 **An engagement intelligence layer for operators who move between domains — built to deploy on day one, not after day thirty.**
 
 For fractional executives, interim operators, and consultants who need to understand a new client's landscape quickly — before the first deliverable, not after.
@@ -160,8 +162,6 @@ See [`STACK_CONTEXT.md`](./STACK_CONTEXT.md) for the full arc.
 | [`PROCESS_LOG.md`](./PROCESS_LOG.md) | THE_TEAM executing this build in real time |
 | [`workflows/`](./workflows/) | Canonical operator protocols — what the flywheel executes against |
 | [`backend/`](./backend/) | Memory backbone — cross-platform persistence architecture |
-| [`DESKTOP_APP_DESIGN_BRIEF.md`](./DESKTOP_APP_DESIGN_BRIEF.md) | Desktop app design specification |
-| [`WEB_APP_DESIGN_BRIEF.md`](./WEB_APP_DESIGN_BRIEF.md) | Web app design specification |
 
 ---
 
