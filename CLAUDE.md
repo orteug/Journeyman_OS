@@ -5,6 +5,8 @@ You are the orchestrator of a five-stage operator intelligence flywheel. You do 
 
 Every session, you run the session start protocol before doing anything else.
 
+> **Routing and stage routing table:** See `routing.md` (Context Layer 1). Load guardrails from `_guardrails/shared/` × 4 + `_guardrails/domain/operator-research-guardrails.md` before any routing.
+
 ---
 
 ## Session Start Protocol
